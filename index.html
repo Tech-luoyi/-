@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>怪人协会快乐盘 - 现代版</title>
+    <style>
+        :root {
+            --bg: #f0f2f5;
+            --primary: #6366f1;
+            --accent: #f43f5e;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 20px;
+            font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            color: var(--text-main);
+        }
+
+        /* 标题部分 */
+        .header-wrapper {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .main-title {
+            font-size: 48px;
+            font-weight: 900;
+            margin: 0;
+            background: linear-gradient(135deg, #4f46e5 0%, #f43f5e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -2px;
+        }
+
+        .sub-title {
+            font-size: 14px;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-top: 10px;
+        }
+
+        /* 设置卡片 */
+        .setup-card {
+            background: var(--card-bg);
+            padding: 12px 24px;
+            border-radius: 100px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .setup-card input {
+            width: 45px;
+            padding: 5px;
+            border: 2px solid #f1f5f9;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 800;
+            color: var(--primary);
+            outline: none;
+        }
+
+        /* 转盘容器 */
+        .container {
+            position: relative;
+            width: 420px;
+            height: 420px;
+            padding: 10px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        }
+
+        /* 指针 */
+        .indicator {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            width: 40px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+
+        #wheel-svg {
+            width: 100%;
+            height: 100%;
+            transition: transform 6s cubic-bezier(0.2, 0, 0.1, 1);
+        }
+
+        /* 转盘内文字设计 */
+        .slice-text {
+            fill: white;
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-anchor: end; /* 文字靠外圈对齐 */
+            dominant-baseline: middle;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+            user-select: none;
+        }
+
+        .center-dot {
+            fill: white;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+
+        /* 按钮 */
+        .btn-spin {
+            margin-top: 40px;
+            padding: 20px 80px;
+            font-size: 20px;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            box-shadow: 0 15px 30px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-spin:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-spin:active { transform: scale(0.98); }
+
+        .btn-spin:disabled {
+            background: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* 结果弹窗 */
+        #popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px 60px;
+            border-radius: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1000;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #popup.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .result-name {
+            font-size: 48px;
+            font-weight: 900;
+            color: var(--accent);
+            display: block;
+            margin-top: 10px;
+        }
+
+        /* 历史记录 */
+        .history-box {
+            margin-top: 50px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .tag {
+            background: white;
+            padding: 8px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+            border: 1px solid #e2e8f0;
+            animation: tagIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+        }
+
+        @keyframes tagIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="header-wrapper">
+        <h1 class="main-title">怪人协会快乐盘</h1>
+        <div class="sub-title">我不是要捍卫自己的王位...</div>
+    </div>
+
+    <div class="setup-card">
+        <span>计划抽取</span>
+        <input type="number" id="draw-limit" value="3" min="1">
+        <span>人</span>
+        <span style="color: #e2e8f0; margin: 0 10px">|</span>
+        <span id="pool-status" style="font-weight: 600; color: var(--text-sub)">剩余: --</span>
+    </div>
+
+    <div id="popup">
+        <span style="color: var(--text-sub); font-size: 16px; font-weight: 500;">恭喜选中</span>
+        <span class="result-name" id="result-val">-</span>
+    </div>
+
+    <div class="container">
+        <svg class="indicator" viewBox="0 0 30 40">
+            <path d="M15 40 L30 10 A 15 15 0 0 0 0 10 Z" fill="#f43f5e" />
+        </svg>
+        <svg id="wheel-svg" viewBox="0 0 400 400"></svg>
+    </div>
+
+    <button class="btn-spin" id="spin-btn">开始旋转</button>
+
+    <div class="history-box">
+        <div style="font-size: 17px; color: var(--text-sub); letter-spacing: 3px; margin-bottom: 15px; font-weight: 700;">🏆 获奖同志</div>
+        <div id="history-tags" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;"></div>
+    </div>
+
+    <script>
+        const items = ["邱上峰", "钟梓迅", "张俊杰", "顾朋", "时瑞阳", "qjj", "蒋励伟", "||", "孔岩彬", "赵艺泽", "杜忠瑞"];
+        
+        let pool = [...items];
+        let winners = [];
+        let currentRotation = 0;
+        
+        const svg = document.getElementById('wheel-svg');
+        const btn = document.getElementById('spin-btn');
+        const popup = document.getElementById('popup');
+        const resultVal = document.getElementById('result-val');
+        const limitInput = document.getElementById('draw-limit');
+        const poolStatus = document.getElementById('pool-status');
+        const historyTags = document.getElementById('history-tags');
+        
+        // 优化配色：使用更高级的饱和度
+        const colors = ['#4f46e5', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#fb7185', '#fb923c', '#facc15', '#4ade80', '#2dd4bf'];
+        const count = items.length;
+        const angleStep = 360 / count;
+
+        function createWheel() {
+            svg.innerHTML = '';
+            items.forEach((item, i) => {
+                const startAngle = i * angleStep;
+                const endAngle = (i + 1) * angleStep;
+                const x1 = 200 + 195 * Math.cos(Math.PI * startAngle / 180);
+                const y1 = 200 + 195 * Math.sin(Math.PI * startAngle / 180);
+                const x2 = 200 + 195 * Math.cos(Math.PI * endAngle / 180);
+                const y2 = 200 + 195 * Math.sin(Math.PI * endAngle / 180);
+                
+                const pathData = `M 200 200 L ${x1} ${y1} A 195 195 0 0 1 ${x2} ${y2} Z`;
+                
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", pathData);
+                path.setAttribute("fill", colors[i % colors.length]);
+                path.setAttribute("stroke", "white");
+                path.setAttribute("stroke-width", "2");
+                
+                // 文字角度计算
+                const textAngle = startAngle + angleStep / 2;
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                
+                // 将文字放在扇区靠外侧的位置
+                const textX = 200 + 175; 
+                const textY = 200;
+                
+                text.setAttribute("x", textX);
+                text.setAttribute("y", textY);
+                text.setAttribute("class", "slice-text");
+                // 旋转文字：以中心为点旋转 textAngle，再微调文字自身的旋转
+                text.setAttribute("transform", `rotate(${textAngle}, 200, 200)`);
+                
+                text.textContent = item;
+
+                g.appendChild(path);
+                g.appendChild(text);
+                svg.appendChild(g);
+            });
+
+            // 中心点装饰
+            const center = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            center.setAttribute("cx", "200");
+            center.setAttribute("cy", "200");
+            center.setAttribute("r", "12");
+            center.setAttribute("class", "center-dot");
+            svg.appendChild(center);
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            poolStatus.textContent = `剩余: ${pool.length}`;
+            if (winners.length >= parseInt(limitInput.value) || pool.length === 0) {
+                btn.disabled = true;
+                btn.textContent = "抽取已完成";
+            }
+        }
+
+        btn.onclick = () => {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            popup.classList.remove('show');
+
+            const randomIndex = Math.floor(Math.random() * pool.length);
+            const winnerName = pool[randomIndex];
+            const physicalIndex = items.indexOf(winnerName);
+
+            // 计算角度逻辑（修正偏移）
+            const extraSpins = 2160; // 6圈
+            const targetAngle = 360 - (physicalIndex * angleStep + angleStep / 2);
+            const baseRotation = Math.ceil(currentRotation / 360) * 360;
+            currentRotation = baseRotation + extraSpins + targetAngle;
+            
+            // 注意这里是 -90 因为 SVG 的 0 度是在 3 点钟方向，我们需要它在 12 点钟
+            svg.style.transform = `rotate(${currentRotation - 90}deg)`;
+
+            setTimeout(() => {
+                resultVal.textContent = winnerName;
+                popup.classList.add('show');
+                
+                pool.splice(randomIndex, 1);
+                winners.push(winnerName);
+                
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = winnerName;
+                historyTags.appendChild(tag);
+
+                updateUI();
+                
+                // 自动关闭弹窗并允许下一次旋转
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                    if (winners.length < parseInt(limitInput.value) && pool.length > 0) {
+                        btn.disabled = false;
+                    }
+                }, 2000);
+                
+            }, 6200);
+        };
+
+        createWheel();
+        limitInput.onchange = updateUI;
+    </script>
+</body>
+</html>
